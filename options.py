@@ -1,8 +1,5 @@
 import getopt
 
-opt_template = "t:p:l"
-long_opts = ["target", "port", "listen"]
-
 class Options:
 	def __init__(self, opt_template, long_opts=''):
 		self.opt_template = opt_template
@@ -19,7 +16,7 @@ class Options:
 				self.addr = arg
 
 			elif opt in ('-p', '--port'):
-				self.port = arg
+				self.port = int(arg)
 
 			elif opt in ('-l', '--listen'):
 				self.listen = True 
