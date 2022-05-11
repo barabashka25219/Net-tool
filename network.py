@@ -1,7 +1,6 @@
 import socket
 import threading
 from command_handler import command_handler
-from options import Options
 
 class Server:
 	def __init__(self, port):
@@ -13,25 +12,84 @@ class Server:
 		self.socket.listen(1)
 
 		while True:
-			self.client, self.client_addr = self.socket.accept()
+			try:
+				self.client, self.client_addr = self.socket.accept()
+				print(f"[*] {self.client_addr[0]} {self.client_addr[1]} connected.")
+
+			except KeyboardInterrupt:
+				print("[*] Closing the server...")
+				self.socket.close()
+				break
 
 			new_thread = threading.Thread(target=self.connection_handler)
 			new_thread.start()
 
-	def connection_handler(self):
+		self.close_server()
 
+	def connection_handler(self):
 		while True:
 			try:
 				command = self.client.recv(4096).decode('utf-8').rstrip()
 				command_result = command_handler(command.encode('utf-8'))
 				self.client.send(command_result)
 
-			except:
+			except BrokenPipeError:
+				print(f"[*] {self.client_addr[0]} {self.client_addr[1]} disconnected.")
 				break
 
+		self.close_connection()
+
+
+	def close_server(self):
+		self.socket.close()
 
 	def close_connection(self):
 		self.client.close()
 
-server = Server(5555)
-server.listen_connections()
+
+
+class Client:
+	def __init__(self, addr, port):
+		self.socket = socket.socket()
+		self.serv_addr = addr 
+		self.serv_port = port
+
+	def connect_to_server(self):
+		try:
+			self.socket.connect((self.serv_addr, self.serv_port))
+			self.connection_handler()
+
+		except ConnectionRefusedError:
+			print(f"[!] Can't connect to {self.serv_addr}:{self.serv_port}")
+			
+
+	def connection_handler(self):
+		recv_len = 1
+
+		while recv_len:
+			print("net-tool>: ", end='')
+
+			try:
+				command = input("").rstrip()
+
+			except KeyboardInterrupt:
+				print("[*] Closing connection...")
+				break
+
+			if not command:
+				continue
+
+			elif command == 'disconnect':
+				self.close_connection()
+				break
+
+			self.socket.send(command.encode())
+			serv_answer = self.socket.recv(4096)
+			print(serv_answer.decode())
+
+
+		self.close_connection()
+
+	def close_connection(self):
+		self.socket.close()
+
